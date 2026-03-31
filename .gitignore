@@ -43,3 +43,6 @@ hs_err_pid*
 
 # Test coverage
 coverage/
+
+# Package lock
+package-lock.json
