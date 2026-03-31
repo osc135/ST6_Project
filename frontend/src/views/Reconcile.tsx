@@ -13,7 +13,7 @@ interface ReconcileState {
 
 export function Reconcile() {
   const { currentUser } = useAuth();
-  const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
+  const [priorWeek, setPriorWeek] = useState<Week | null>(null);
   const [tasks, setTasks] = useState<WeeklyCommit[]>([]);
   const [goals, setGoals] = useState<GoalNode[]>([]);
   const [reconcileState, setReconcileState] = useState<ReconcileState>({});
@@ -26,15 +26,24 @@ export function Reconcile() {
     setLoading(true);
     try {
       const [week, allGoals] = await Promise.all([
-        api.getCurrentWeek(),
+        api.getPriorWeek(),
         api.getHierarchy(),
       ]);
-      setCurrentWeek(week);
       setGoals(allGoals);
 
+      if (!week) {
+        setPriorWeek(null);
+        setTasks([]);
+        setLoading(false);
+        return;
+      }
+
+      setPriorWeek(week);
       const allTasks = await api.getCommitsByOwnerAndWeek(currentUser.id, week.id);
       const reconcilable = allTasks.filter(
-        (t) => t.status === CommitStatus.RECONCILING || t.status === CommitStatus.LOCKED
+        (t) =>
+          t.status === CommitStatus.RECONCILING ||
+          t.status === CommitStatus.LOCKED
       );
       setTasks(reconcilable);
 
@@ -55,8 +64,8 @@ export function Reconcile() {
   }, [loadData]);
 
   async function handleOpenReconciliation() {
-    if (!currentUser || !currentWeek) return;
-    await api.openReconciliation(currentUser.id, currentWeek.id);
+    if (!currentUser || !priorWeek) return;
+    await api.openReconciliation(currentUser.id, priorWeek.id);
     loadData();
   }
 
@@ -75,17 +84,18 @@ export function Reconcile() {
   }
 
   async function handleSubmit() {
-    const allAddressed = tasks.every((t) => reconcileState[t.id]?.done !== null);
+    const reconcilingTasks = tasks.filter((t) => t.status === CommitStatus.RECONCILING);
+    const allAddressed = reconcilingTasks.every((t) => reconcileState[t.id]?.done !== null);
     if (!allAddressed) return;
 
-    const notDoneWithoutExplanation = tasks.some(
+    const notDoneWithoutExplanation = reconcilingTasks.some(
       (t) => reconcileState[t.id]?.done === false && !reconcileState[t.id]?.explanation.trim()
     );
     if (notDoneWithoutExplanation) return;
 
     setSubmitting(true);
     try {
-      for (const task of tasks) {
+      for (const task of reconcilingTasks) {
         const state = reconcileState[task.id];
         await api.reconcile({
           commitId: task.id,
@@ -115,26 +125,29 @@ export function Reconcile() {
     );
   }
 
-  const hasLockedTasks = tasks.some((t) => t.status === CommitStatus.LOCKED);
-  const hasReconcilingTasks = tasks.some((t) => t.status === CommitStatus.RECONCILING);
-
-  if (tasks.length === 0) {
+  if (!priorWeek || tasks.length === 0) {
     return (
       <div>
         <h1 className="section-title">Reconciliation</h1>
-        <div className="empty-state">No tasks to reconcile this week.</div>
+        <div className="empty-state">No tasks to reconcile from last week.</div>
       </div>
     );
   }
 
+  const hasLockedTasks = tasks.some((t) => t.status === CommitStatus.LOCKED);
+  const hasReconcilingTasks = tasks.some((t) => t.status === CommitStatus.RECONCILING);
+
   return (
     <div>
-      <h1 className="section-title" style={{ marginBottom: 16 }}>Reconciliation</h1>
+      <h1 className="section-title" style={{ marginBottom: 8 }}>Reconciliation</h1>
+      <p style={{ fontSize: 13, color: "#666", marginBottom: 16 }}>
+        Week of {priorWeek.startDate} &mdash; {priorWeek.endDate}
+      </p>
 
       {hasLockedTasks && !hasReconcilingTasks && (
         <div style={{ marginBottom: 20 }}>
           <p style={{ marginBottom: 8, fontSize: 14 }}>
-            Your tasks are locked. Open reconciliation to mark them as done or not done.
+            Your prior week tasks are locked. Open reconciliation to mark them as done or not done.
           </p>
           <button className="btn btn-primary" onClick={handleOpenReconciliation}>
             Open Reconciliation
@@ -200,7 +213,9 @@ export function Reconcile() {
             onClick={handleSubmit}
             disabled={
               submitting ||
-              tasks.some((t) => t.status === CommitStatus.RECONCILING && reconcileState[t.id]?.done === null) ||
+              tasks
+                .filter((t) => t.status === CommitStatus.RECONCILING)
+                .some((t) => reconcileState[t.id]?.done === null) ||
               tasks.some(
                 (t) =>
                   reconcileState[t.id]?.done === false && !reconcileState[t.id]?.explanation.trim()

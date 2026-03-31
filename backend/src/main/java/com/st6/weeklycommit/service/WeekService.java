@@ -29,6 +29,13 @@ public class WeekService {
                 .orElseGet(() -> createWeekFor(date));
     }
 
+    public Week getPriorWeek() {
+        Week current = getCurrentWeek();
+        LocalDate priorMonday = current.getStartDate().minusDays(7);
+        return weekRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqual(priorMonday, priorMonday)
+                .orElse(null);
+    }
+
     public Week getNextWeek() {
         Week current = getCurrentWeek();
         LocalDate nextMonday = current.getEndDate().plusDays(3);

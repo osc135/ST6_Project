@@ -5,6 +5,7 @@ import { api } from "../api/client";
 import { TaskCard } from "../components/TaskCard";
 import { TaskFormModal } from "../components/TaskFormModal";
 import type { WeeklyCommit, GoalNode, Week } from "../types";
+import { CommitStatus } from "../types";
 
 export function MyWeek() {
   const { currentUser } = useAuth();
@@ -89,6 +90,16 @@ export function MyWeek() {
     loadData();
   }
 
+  async function handleLockWeek() {
+    if (!currentUser || !currentWeek) return;
+    await api.lockWeek(currentUser.id, currentWeek.id);
+    loadData();
+  }
+
+  const allTasks = [...thisWeekTasks, ...carriedOverTasks];
+  const hasDraftTasks = allTasks.some((t) => t.status === CommitStatus.DRAFT);
+  const allLocked = allTasks.length > 0 && allTasks.every((t) => t.status !== CommitStatus.DRAFT);
+
   if (!currentUser) return <div className="loading">Select a user to continue</div>;
   if (loading) return <div className="loading">Loading...</div>;
 
@@ -106,10 +117,25 @@ export function MyWeek() {
 
       <div className="section-header">
         <h1 className="section-title">My Week</h1>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          + Add Task
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {hasDraftTasks && (
+            <button className="btn btn-outline" onClick={handleLockWeek}>
+              Lock Week
+            </button>
+          )}
+          {!allLocked && (
+            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+              + Add Task
+            </button>
+          )}
+        </div>
       </div>
+
+      {allLocked && allTasks.length > 0 && (
+        <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 14, color: "#1e40af" }}>
+          Your week is locked. Head to Reconcile at the end of the week to review your tasks.
+        </div>
+      )}
 
       {currentWeek && (
         <p style={{ fontSize: 13, color: "#666", marginBottom: 16 }}>

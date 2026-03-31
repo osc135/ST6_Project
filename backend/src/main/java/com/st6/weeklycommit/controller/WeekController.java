@@ -21,6 +21,11 @@ public class WeekController {
         return weekService.getCurrentWeek();
     }
 
+    @GetMapping("/prior")
+    public Week getPriorWeek() {
+        return weekService.getPriorWeek();
+    }
+
     @GetMapping("/{id}")
     public Week getById(@PathVariable UUID id) {
         return weekService.getById(id);
