@@ -1,15 +1,24 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { api } from "../api/client";
 import { TaskCard } from "../components/TaskCard";
 import { TaskFormModal } from "../components/TaskFormModal";
 import type { WeeklyCommit, GoalNode, Week } from "../types";
 import { CommitStatus } from "../types";
 
+function shiftDate(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
 export function MyWeek() {
   const { currentUser } = useAuth();
-  const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
+  const { showError, showSuccess } = useToast();
+  const [viewedWeek, setViewedWeek] = useState<Week | null>(null);
+  const [currentWeekId, setCurrentWeekId] = useState<string | null>(null);
   const [thisWeekTasks, setThisWeekTasks] = useState<WeeklyCommit[]>([]);
   const [carriedOverTasks, setCarriedOverTasks] = useState<WeeklyCommit[]>([]);
   const [goals, setGoals] = useState<GoalNode[]>([]);
@@ -19,7 +28,23 @@ export function MyWeek() {
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const loadData = useCallback(async () => {
+  const isCurrentWeek = viewedWeek != null && viewedWeek.id === currentWeekId;
+
+  const loadWeekData = useCallback(async (week: Week) => {
+    if (!currentUser) return;
+    try {
+      const [thisWeek, carried] = await Promise.all([
+        api.getThisWeekTasks(currentUser.id, week.id),
+        api.getCarriedOverTasks(currentUser.id, week.id),
+      ]);
+      setThisWeekTasks(thisWeek);
+      setCarriedOverTasks(carried);
+    } catch (err) {
+      showError("Failed to load tasks.");
+    }
+  }, [currentUser, showError]);
+
+  const loadInitial = useCallback(async () => {
     if (!currentUser) return;
     setLoading(true);
     try {
@@ -28,26 +53,46 @@ export function MyWeek() {
         api.getHierarchy(),
         api.hasUnreconciled(currentUser.id),
       ]);
-      setCurrentWeek(week);
+      setViewedWeek(week);
+      setCurrentWeekId(week.id);
       setGoals(allGoals);
       setHasUnreconciled(unreconciled);
-
-      const [thisWeek, carried] = await Promise.all([
-        api.getThisWeekTasks(currentUser.id, week.id),
-        api.getCarriedOverTasks(currentUser.id, week.id),
-      ]);
-      setThisWeekTasks(thisWeek);
-      setCarriedOverTasks(carried);
+      await loadWeekData(week);
     } catch (err) {
-      console.error("Failed to load data:", err);
+      showError("Failed to load weekly data. Please try again.");
     }
     setLoading(false);
-  }, [currentUser]);
+  }, [currentUser, loadWeekData, showError]);
 
   useEffect(() => {
-    loadData();
+    loadInitial();
     setNudgeDismissed(false);
-  }, [loadData]);
+  }, [loadInitial]);
+
+  async function navigateWeek(direction: "prev" | "next") {
+    if (!viewedWeek) return;
+    const targetDate = direction === "prev"
+      ? shiftDate(viewedWeek.startDate, -7)
+      : shiftDate(viewedWeek.endDate, 3);
+    setLoading(true);
+    try {
+      const week = await api.getWeekByDate(targetDate);
+      setViewedWeek(week);
+      await loadWeekData(week);
+    } catch (err) {
+      showError("Failed to load week.");
+    }
+    setLoading(false);
+  }
+
+  function goToCurrentWeek() {
+    loadInitial();
+  }
+
+  async function refreshCurrentWeek() {
+    if (!viewedWeek) return;
+    await loadWeekData(viewedWeek);
+  }
 
   async function handleAddTask(data: {
     name: string;
@@ -55,17 +100,22 @@ export function MyWeek() {
     goalId?: string;
     customGoalText?: string;
   }) {
-    if (!currentUser || !currentWeek) return;
-    await api.createCommit({
-      name: data.name,
-      priority: data.priority as WeeklyCommit["priority"],
-      goalId: data.goalId,
-      customGoalText: data.customGoalText,
-      ownerId: currentUser.id,
-      weekId: currentWeek.id,
-    });
-    setShowModal(false);
-    loadData();
+    if (!currentUser || !viewedWeek) return;
+    try {
+      await api.createCommit({
+        name: data.name,
+        priority: data.priority as WeeklyCommit["priority"],
+        goalId: data.goalId,
+        customGoalText: data.customGoalText,
+        ownerId: currentUser.id,
+        weekId: viewedWeek.id,
+      });
+      setShowModal(false);
+      showSuccess("Task added.");
+      refreshCurrentWeek();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to add task.");
+    }
   }
 
   async function handleEditTask(data: {
@@ -75,25 +125,40 @@ export function MyWeek() {
     customGoalText?: string;
   }) {
     if (!editingTask) return;
-    await api.updateCommit(editingTask.id, {
-      name: data.name,
-      priority: data.priority as WeeklyCommit["priority"],
-      goalId: data.goalId,
-      customGoalText: data.customGoalText,
-    });
-    setEditingTask(null);
-    loadData();
+    try {
+      await api.updateCommit(editingTask.id, {
+        name: data.name,
+        priority: data.priority as WeeklyCommit["priority"],
+        goalId: data.goalId,
+        customGoalText: data.customGoalText,
+      });
+      setEditingTask(null);
+      showSuccess("Task updated.");
+      refreshCurrentWeek();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to update task.");
+    }
   }
 
   async function handleDelete(taskId: string) {
-    await api.deleteCommit(taskId);
-    loadData();
+    try {
+      await api.deleteCommit(taskId);
+      showSuccess("Task deleted.");
+      refreshCurrentWeek();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to delete task.");
+    }
   }
 
   async function handleLockWeek() {
-    if (!currentUser || !currentWeek) return;
-    await api.lockWeek(currentUser.id, currentWeek.id);
-    loadData();
+    if (!currentUser || !viewedWeek) return;
+    try {
+      await api.lockWeek(currentUser.id, viewedWeek.id);
+      showSuccess("Week locked.");
+      refreshCurrentWeek();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to lock week.");
+    }
   }
 
   const allTasks = [...thisWeekTasks, ...carriedOverTasks];
@@ -105,7 +170,7 @@ export function MyWeek() {
 
   return (
     <div>
-      {hasUnreconciled && !nudgeDismissed && (
+      {isCurrentWeek && hasUnreconciled && !nudgeDismissed && (
         <div className="nudge-banner">
           <span>
             You haven't reconciled last week yet.{" "}
@@ -118,12 +183,12 @@ export function MyWeek() {
       <div className="section-header">
         <h1 className="section-title">My Week</h1>
         <div style={{ display: "flex", gap: 8 }}>
-          {hasDraftTasks && (
+          {isCurrentWeek && hasDraftTasks && (
             <button className="btn btn-outline" onClick={handleLockWeek}>
               Lock Week
             </button>
           )}
-          {!allLocked && (
+          {isCurrentWeek && !allLocked && (
             <button className="btn btn-primary" onClick={() => setShowModal(true)}>
               + Add Task
             </button>
@@ -131,21 +196,42 @@ export function MyWeek() {
         </div>
       </div>
 
-      {allLocked && allTasks.length > 0 && (
+      {viewedWeek && (
+        <div className="week-nav">
+          <button className="week-nav-btn" onClick={() => navigateWeek("prev")}>
+            &larr; Previous
+          </button>
+          <div className="week-nav-label">
+            <span>{viewedWeek.startDate} &mdash; {viewedWeek.endDate}</span>
+            {!isCurrentWeek && (
+              <button className="week-nav-today" onClick={goToCurrentWeek}>
+                Today
+              </button>
+            )}
+          </div>
+          <button className="week-nav-btn" onClick={() => navigateWeek("next")}>
+            Next &rarr;
+          </button>
+        </div>
+      )}
+
+      {!isCurrentWeek && (
+        <div className="week-nav-past-banner">
+          You are viewing a different week. Tasks are read-only.
+        </div>
+      )}
+
+      {isCurrentWeek && allLocked && allTasks.length > 0 && (
         <div style={{ background: "#dbeafe", border: "1px solid #93c5fd", borderRadius: 8, padding: "10px 14px", marginBottom: 16, fontSize: 14, color: "#1e40af" }}>
           Your week is locked. Head to Reconcile at the end of the week to review your tasks.
         </div>
       )}
 
-      {currentWeek && (
-        <p style={{ fontSize: 13, color: "#666", marginBottom: 16 }}>
-          {currentWeek.startDate} &mdash; {currentWeek.endDate}
-        </p>
-      )}
-
       <h3 className="section-subtitle">This Week</h3>
       {thisWeekTasks.length === 0 ? (
-        <div className="empty-state">No tasks yet. Add one to get started.</div>
+        <div className="empty-state">
+          {isCurrentWeek ? "No tasks yet. Add one to get started." : "No tasks this week."}
+        </div>
       ) : (
         thisWeekTasks.map((task) => (
           <TaskCard
@@ -154,6 +240,7 @@ export function MyWeek() {
             goals={goals}
             onEdit={(t) => setEditingTask(t)}
             onDelete={handleDelete}
+            showActions={isCurrentWeek}
           />
         ))
       )}
@@ -168,6 +255,7 @@ export function MyWeek() {
               goals={goals}
               onEdit={(t) => setEditingTask(t)}
               onDelete={handleDelete}
+              showActions={isCurrentWeek}
             />
           ))}
         </>

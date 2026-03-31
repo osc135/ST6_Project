@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { api } from "../api/client";
 import { TaskCard } from "../components/TaskCard";
 import type { TeamMemberSummary, WeeklyCommit, GoalNode, Week } from "../types";
@@ -19,6 +20,7 @@ const ALIGNMENT_TEXT: Record<string, string> = {
 
 export function TeamDashboard() {
   const { currentUser } = useAuth();
+  const { showError } = useToast();
   const [currentWeek, setCurrentWeek] = useState<Week | null>(null);
   const [teamSummary, setTeamSummary] = useState<TeamMemberSummary[]>([]);
   const [goals, setGoals] = useState<GoalNode[]>([]);
@@ -40,7 +42,7 @@ export function TeamDashboard() {
       const summary = await api.getTeamSummary(week.id);
       setTeamSummary(summary);
     } catch (err) {
-      console.error("Failed to load dashboard:", err);
+      showError("Failed to load dashboard. Please try again.");
     }
     setLoading(false);
   }, [currentUser]);
@@ -51,9 +53,14 @@ export function TeamDashboard() {
 
   async function handleDrillDown(member: TeamMemberSummary) {
     if (!currentWeek) return;
-    setSelectedMember(member);
-    const tasks = await api.getMemberTasks(currentWeek.id, member.userId);
-    setMemberTasks(tasks);
+    try {
+      setSelectedMember(member);
+      const tasks = await api.getMemberTasks(currentWeek.id, member.userId);
+      setMemberTasks(tasks);
+    } catch (err) {
+      showError("Failed to load member tasks.");
+      setSelectedMember(null);
+    }
   }
 
   if (!currentUser) return <div className="loading">Select a user to continue</div>;

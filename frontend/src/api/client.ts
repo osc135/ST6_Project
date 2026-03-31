@@ -37,6 +37,7 @@ export const api = {
   getCurrentWeek: () => request<Week>("/weeks/current"),
   getPriorWeek: () => request<Week | null>("/weeks/prior"),
   getWeek: (id: string) => request<Week>(`/weeks/${id}`),
+  getWeekByDate: (date: string) => request<Week>(`/weeks/by-date?date=${date}`),
 
   // Goals
   getGoals: () => request<GoalNode[]>("/goals"),

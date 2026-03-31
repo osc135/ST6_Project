@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import { api } from "../api/client";
 import type { WeeklyCommit, GoalNode, Week } from "../types";
 import { CommitStatus, PRIORITY_LABELS } from "../types";
@@ -13,6 +14,7 @@ interface ReconcileState {
 
 export function Reconcile() {
   const { currentUser } = useAuth();
+  const { showError, showSuccess } = useToast();
   const [priorWeek, setPriorWeek] = useState<Week | null>(null);
   const [tasks, setTasks] = useState<WeeklyCommit[]>([]);
   const [goals, setGoals] = useState<GoalNode[]>([]);
@@ -53,7 +55,7 @@ export function Reconcile() {
       }
       setReconcileState(initial);
     } catch (err) {
-      console.error("Failed to load reconciliation data:", err);
+      showError("Failed to load reconciliation data. Please try again.");
     }
     setLoading(false);
   }, [currentUser]);
@@ -65,8 +67,13 @@ export function Reconcile() {
 
   async function handleOpenReconciliation() {
     if (!currentUser || !priorWeek) return;
-    await api.openReconciliation(currentUser.id, priorWeek.id);
-    loadData();
+    try {
+      await api.openReconciliation(currentUser.id, priorWeek.id);
+      showSuccess("Reconciliation opened.");
+      loadData();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : "Failed to open reconciliation.");
+    }
   }
 
   function setTaskDone(commitId: string, done: boolean) {
@@ -104,8 +111,9 @@ export function Reconcile() {
         });
       }
       setSubmitted(true);
+      showSuccess("Reconciliation submitted!");
     } catch (err) {
-      console.error("Failed to submit reconciliation:", err);
+      showError(err instanceof Error ? err.message : "Failed to submit reconciliation.");
     }
     setSubmitting(false);
   }
