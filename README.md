@@ -8,7 +8,7 @@ A micro-frontend that replaces 15-Five as ST6's weekly planning tool. Connects i
 |----------|-----------------------------------------|
 | Frontend | React 18, TypeScript (strict), Webpack 5 |
 | Backend  | Spring Boot 3.2.5, Java 21             |
-| Database | H2 (in-memory, seeded on startup)       |
+| Database | SQL (H2 in-memory, seeded on startup)    |
 | Integration | Module Federation (PM remote pattern) |
 
 ## Prerequisites
@@ -36,7 +36,7 @@ npm install
 npm start
 ```
 
-Starts on **http://localhost:4000**. Proxies API calls to the backend at localhost:8080.
+Starts on **http://localhost:4000**. Calls the backend API at localhost:8080 via CORS.
 
 ### Running Tests
 
