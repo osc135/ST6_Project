@@ -1,11 +1,12 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const { ModuleFederationPlugin } = require("webpack").container;
 module.exports = {
   entry: "./src/index.tsx",
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].[contenthash].js",
-    publicPath: "/",
+    publicPath: "auto",
     clean: true,
   },
   resolve: {
@@ -25,6 +26,18 @@ module.exports = {
     ],
   },
   plugins: [
+    new ModuleFederationPlugin({
+      name: "weeklyCommitModule",
+      filename: "remoteEntry.js",
+      exposes: {
+        "./App": "./src/App",
+      },
+      shared: {
+        react: { singleton: true, requiredVersion: "^18.2.0" },
+        "react-dom": { singleton: true, requiredVersion: "^18.2.0" },
+        "react-router-dom": { singleton: true, requiredVersion: "^6.22.0" },
+      },
+    }),
     new HtmlWebpackPlugin({
       template: "./public/index.html",
     }),

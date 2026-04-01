@@ -75,15 +75,21 @@ public class AuthController {
         if (name == null || email == null || managerId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Name, email, and managerId are required");
         }
-        if (userRepository.findByEmail(email.trim().toLowerCase()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already in use");
-        }
-
         UUID managerUuid = UUID.fromString(managerId);
         User manager = userRepository.findById(managerUuid)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Manager not found"));
         if (manager.getRole() != UserRole.MANAGER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only managers can add employees");
+        }
+
+        var existing = userRepository.findByEmail(email.trim().toLowerCase());
+        if (existing.isPresent()) {
+            User user = existing.get();
+            if (user.getManagerId() != null) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Employee is already on a team");
+            }
+            user.setManagerId(managerUuid);
+            return userRepository.save(user);
         }
 
         User employee = new User();
