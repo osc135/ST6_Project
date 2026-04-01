@@ -35,15 +35,15 @@ class DashboardControllerTest {
 
     @Test
     void getTeamSummary_returnsAllMembers() throws Exception {
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID).param("managerId", ALICE_ID))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(4)));
+                .andExpect(jsonPath("$", hasSize(3)));
     }
 
     @Test
     void getTeamSummary_carolHasGreenAlignment() throws Exception {
         // Carol has all 3 tasks linked to org goals (no custom, no unaligned)
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID).param("managerId", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.userId == '" + CAROL_ID + "')].alignmentStatus",
                         contains("GREEN")))
@@ -52,18 +52,17 @@ class DashboardControllerTest {
     }
 
     @Test
-    void getTeamSummary_aliceHasYellowAlignment() throws Exception {
-        // Alice has 2 aligned tasks + 1 custom goal task => YELLOW
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID))
+    void getTeamSummary_onlyReturnsDirectReports() throws Exception {
+        // Alice is the manager — she should not appear in her own team summary
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID).param("managerId", ALICE_ID))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.userId == '" + ALICE_ID + "')].alignmentStatus",
-                        contains("YELLOW")));
+                .andExpect(jsonPath("$[?(@.userId == '" + ALICE_ID + "')]").isEmpty());
     }
 
     @Test
     void getTeamSummary_danHasRedAlignment() throws Exception {
         // Dan has 1 aligned, 1 custom, 1 with NO goal at all => RED
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID).param("managerId", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.userId == '" + DAN_ID + "')].alignmentStatus",
                         contains("RED")));
@@ -72,7 +71,7 @@ class DashboardControllerTest {
     @Test
     void getTeamSummary_bobHasYellowAlignment() throws Exception {
         // Bob has 2 aligned + 1 custom goal => YELLOW
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID).param("managerId", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.userId == '" + BOB_ID + "')].alignmentStatus",
                         contains("YELLOW")));

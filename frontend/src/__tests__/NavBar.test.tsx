@@ -91,7 +91,7 @@ describe("NavBar", () => {
     expect(screen.queryByText("Team Dashboard")).not.toBeInTheDocument();
   });
 
-  it("user select dropdown shows all users", () => {
+  it("displays current user name", () => {
     mockUseAuth.mockReturnValue({
       currentUser: managerUser,
       users: allUsers,
@@ -99,7 +99,6 @@ describe("NavBar", () => {
       loading: false,
     });
     renderNavBar();
-    expect(screen.getByText("Alice Manager (MANAGER)")).toBeInTheDocument();
-    expect(screen.getByText("Bob Employee (EMPLOYEE)")).toBeInTheDocument();
+    expect(screen.getByText("Alice Manager")).toBeInTheDocument();
   });
 });
