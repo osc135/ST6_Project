@@ -1,9 +1,10 @@
--- Users
-INSERT INTO users (id, name, email, role) VALUES
-    ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'Alice Johnson', 'alice@st6.com', 'MANAGER'),
-    ('b2c3d4e5-f6a7-8901-bcde-f12345678901', 'Bob Smith', 'bob@st6.com', 'EMPLOYEE'),
-    ('c3d4e5f6-a7b8-9012-cdef-123456789012', 'Carol Davis', 'carol@st6.com', 'EMPLOYEE'),
-    ('d4e5f6a7-b8c9-0123-defa-234567890123', 'Dan Wilson', 'dan@st6.com', 'EMPLOYEE');
+-- Users (manager first, then employees with manager_id pointing to Alice)
+INSERT INTO users (id, name, email, role, manager_id) VALUES
+    ('a1b2c3d4-e5f6-7890-abcd-ef1234567890', 'Alice Johnson', 'alice@st6.com', 'MANAGER', NULL);
+INSERT INTO users (id, name, email, role, manager_id) VALUES
+    ('b2c3d4e5-f6a7-8901-bcde-f12345678901', 'Bob Smith', 'bob@st6.com', 'EMPLOYEE', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
+    ('c3d4e5f6-a7b8-9012-cdef-123456789012', 'Carol Davis', 'carol@st6.com', 'EMPLOYEE', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'),
+    ('d4e5f6a7-b8c9-0123-defa-234567890123', 'Dan Wilson', 'dan@st6.com', 'EMPLOYEE', 'a1b2c3d4-e5f6-7890-abcd-ef1234567890');
 
 -- RCDO Goal Hierarchy
 -- Rally Cries

@@ -13,6 +13,7 @@ const managerUser: User = {
   name: "Alice Manager",
   email: "alice@example.com",
   role: UserRole.MANAGER,
+  managerId: null,
 };
 
 const employeeUser: User = {
@@ -20,6 +21,7 @@ const employeeUser: User = {
   name: "Bob Employee",
   email: "bob@example.com",
   role: UserRole.EMPLOYEE,
+  managerId: "user-1",
 };
 
 const allUsers: User[] = [managerUser, employeeUser];

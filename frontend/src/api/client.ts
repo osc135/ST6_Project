@@ -28,6 +28,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  // Auth
+  login: (email: string, password: string) =>
+    request<User>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+  register: (name: string, email: string, password: string, role: string) =>
+    request<User>("/auth/register", { method: "POST", body: JSON.stringify({ name, email, password, role }) }),
+  inviteEmployee: (name: string, email: string, managerId: string) =>
+    request<User>("/auth/invite", { method: "POST", body: JSON.stringify({ name, email, managerId }) }),
+
   // Users
   getUsers: () => request<User[]>("/users"),
   getUser: (id: string) => request<User>(`/users/${id}`),
@@ -68,8 +76,8 @@ export const api = {
     request<boolean>(`/commits/owner/${ownerId}/has-unreconciled`),
 
   // Dashboard
-  getTeamSummary: (weekId: string) =>
-    request<TeamMemberSummary[]>(`/dashboard/team/${weekId}`),
+  getTeamSummary: (weekId: string, managerId: string) =>
+    request<TeamMemberSummary[]>(`/dashboard/team/${weekId}?managerId=${managerId}`),
   getMemberTasks: (weekId: string, userId: string) =>
     request<WeeklyCommit[]>(`/dashboard/team/${weekId}/member/${userId}`),
 };

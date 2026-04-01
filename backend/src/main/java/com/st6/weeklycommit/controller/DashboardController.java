@@ -22,8 +22,10 @@ public class DashboardController {
     }
 
     @GetMapping("/team/{weekId}")
-    public List<TeamMemberSummary> getTeamSummary(@PathVariable UUID weekId) {
-        return dashboardService.getTeamSummary(weekId);
+    public List<TeamMemberSummary> getTeamSummary(
+            @PathVariable UUID weekId,
+            @RequestParam UUID managerId) {
+        return dashboardService.getTeamSummary(weekId, managerId);
     }
 
     @GetMapping("/team/{weekId}/member/{userId}")

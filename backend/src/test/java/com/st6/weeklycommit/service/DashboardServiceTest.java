@@ -32,16 +32,18 @@ class DashboardServiceTest {
     @InjectMocks
     private DashboardService service;
 
+    private final UUID managerId = UUID.randomUUID();
+
     @Test
     void getTeamSummary_allAligned_returnsGreen() {
         UUID weekId = UUID.randomUUID();
-        User user = new User(UUID.randomUUID(), "Carol", "carol@st6.com", UserRole.EMPLOYEE);
+        User user = new User(UUID.randomUUID(), "Carol", "carol@st6.com", "", UserRole.EMPLOYEE);
         WeeklyCommit task = makeTask(user.getId(), weekId, UUID.randomUUID(), null, false);
 
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByManagerId(managerId)).thenReturn(List.of(user));
         when(commitRepository.findByOwnerIdAndWeekId(user.getId(), weekId)).thenReturn(List.of(task));
 
-        List<TeamMemberSummary> result = service.getTeamSummary(weekId);
+        List<TeamMemberSummary> result = service.getTeamSummary(weekId, managerId);
 
         assertEquals(1, result.size());
         assertEquals("GREEN", result.get(0).alignmentStatus());
@@ -51,15 +53,15 @@ class DashboardServiceTest {
     @Test
     void getTeamSummary_customGoal_returnsYellow() {
         UUID weekId = UUID.randomUUID();
-        User user = new User(UUID.randomUUID(), "Bob", "bob@st6.com", UserRole.EMPLOYEE);
+        User user = new User(UUID.randomUUID(), "Bob", "bob@st6.com", "", UserRole.EMPLOYEE);
         WeeklyCommit aligned = makeTask(user.getId(), weekId, UUID.randomUUID(), null, false);
         WeeklyCommit custom = makeTask(user.getId(), weekId, null, "Tech debt", true);
 
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByManagerId(managerId)).thenReturn(List.of(user));
         when(commitRepository.findByOwnerIdAndWeekId(user.getId(), weekId))
                 .thenReturn(List.of(aligned, custom));
 
-        List<TeamMemberSummary> result = service.getTeamSummary(weekId);
+        List<TeamMemberSummary> result = service.getTeamSummary(weekId, managerId);
 
         assertEquals("YELLOW", result.get(0).alignmentStatus());
     }
@@ -67,28 +69,28 @@ class DashboardServiceTest {
     @Test
     void getTeamSummary_noGoalAtAll_returnsRed() {
         UUID weekId = UUID.randomUUID();
-        User user = new User(UUID.randomUUID(), "Dan", "dan@st6.com", UserRole.EMPLOYEE);
+        User user = new User(UUID.randomUUID(), "Dan", "dan@st6.com", "", UserRole.EMPLOYEE);
         WeeklyCommit noGoal = makeTask(user.getId(), weekId, null, null, false);
 
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByManagerId(managerId)).thenReturn(List.of(user));
         when(commitRepository.findByOwnerIdAndWeekId(user.getId(), weekId)).thenReturn(List.of(noGoal));
 
-        List<TeamMemberSummary> result = service.getTeamSummary(weekId);
+        List<TeamMemberSummary> result = service.getTeamSummary(weekId, managerId);
 
         assertEquals("RED", result.get(0).alignmentStatus());
     }
 
     @Test
-    void getTeamSummary_noTasks_returnsGreen() {
+    void getTeamSummary_noTasks_returnsNA() {
         UUID weekId = UUID.randomUUID();
-        User user = new User(UUID.randomUUID(), "New Employee", "new@st6.com", UserRole.EMPLOYEE);
+        User user = new User(UUID.randomUUID(), "New Employee", "new@st6.com", "", UserRole.EMPLOYEE);
 
-        when(userRepository.findAll()).thenReturn(List.of(user));
+        when(userRepository.findByManagerId(managerId)).thenReturn(List.of(user));
         when(commitRepository.findByOwnerIdAndWeekId(user.getId(), weekId)).thenReturn(List.of());
 
-        List<TeamMemberSummary> result = service.getTeamSummary(weekId);
+        List<TeamMemberSummary> result = service.getTeamSummary(weekId, managerId);
 
-        assertEquals("GREEN", result.get(0).alignmentStatus());
+        assertEquals("NA", result.get(0).alignmentStatus());
         assertEquals(0, result.get(0).taskCount());
     }
 

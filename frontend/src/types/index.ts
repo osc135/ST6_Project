@@ -29,6 +29,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  managerId: string | null;
 }
 
 export interface Week {

@@ -42,6 +42,11 @@ public class WeekService {
         return getOrCreateWeekFor(nextMonday);
     }
 
+    public Week getNextWeekAfter(Week week) {
+        LocalDate nextMonday = week.getEndDate().plusDays(3);
+        return getOrCreateWeekFor(nextMonday);
+    }
+
     public Week getById(UUID id) {
         return weekRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Week not found: " + id));

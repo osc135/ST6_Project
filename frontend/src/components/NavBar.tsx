@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { UserRole } from "../types";
 
 export function NavBar() {
-  const { currentUser, users, switchUser } = useAuth();
+  const { currentUser, logout } = useAuth();
 
   return (
     <nav className="navbar">
@@ -23,17 +23,8 @@ export function NavBar() {
         )}
       </div>
       <div className="navbar-user">
-        <select
-          value={currentUser?.id ?? ""}
-          onChange={(e) => switchUser(e.target.value)}
-          className="user-select"
-        >
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.name} ({user.role})
-            </option>
-          ))}
-        </select>
+        <span className="navbar-user-name">{currentUser?.name}</span>
+        <button className="btn-logout" onClick={logout}>Sign Out</button>
       </div>
     </nav>
   );

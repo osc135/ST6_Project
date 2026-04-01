@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "start": "webpack serve --mode development --port 3000",
+    "start": "webpack serve --mode development --port 4000",
     "build": "webpack --mode production",
     "test": "jest"
   },

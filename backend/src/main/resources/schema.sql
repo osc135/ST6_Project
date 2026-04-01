@@ -2,7 +2,10 @@ CREATE TABLE users (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
-    role VARCHAR(20) NOT NULL CHECK (role IN ('EMPLOYEE', 'MANAGER'))
+    password VARCHAR(255) NOT NULL DEFAULT '',
+    role VARCHAR(20) NOT NULL CHECK (role IN ('EMPLOYEE', 'MANAGER')),
+    manager_id UUID,
+    FOREIGN KEY (manager_id) REFERENCES users(id)
 );
 
 CREATE TABLE weeks (

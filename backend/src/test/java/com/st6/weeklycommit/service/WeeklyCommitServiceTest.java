@@ -173,12 +173,14 @@ class WeeklyCommitServiceTest {
     void reconcileTask_markedNotDone_transitionsToCarryForwardAndCreatesNewTask() {
         WeeklyCommit task = makeDraftCommit();
         task.setStatus(CommitStatus.RECONCILING);
+        Week taskWeek = new Week(weekId, LocalDate.now(), LocalDate.now().plusDays(4));
         Week nextWeek = new Week(UUID.randomUUID(), LocalDate.now().plusDays(7), LocalDate.now().plusDays(11));
 
         when(commitRepository.findById(task.getId())).thenReturn(Optional.of(task));
         when(reconciliationRepository.save(any())).thenAnswer(i -> i.getArgument(0));
         when(commitRepository.save(any())).thenAnswer(i -> i.getArgument(0));
-        when(weekService.getNextWeek()).thenReturn(nextWeek);
+        when(weekService.getById(weekId)).thenReturn(taskWeek);
+        when(weekService.getNextWeekAfter(taskWeek)).thenReturn(nextWeek);
 
         ReconcileRequest request = new ReconcileRequest(task.getId(), false, "Blocked by dependency");
         ReconciliationEntry entry = service.reconcileTask(request);

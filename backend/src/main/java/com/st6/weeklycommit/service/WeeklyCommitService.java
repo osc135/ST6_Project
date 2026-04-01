@@ -150,7 +150,8 @@ public class WeeklyCommitService {
     }
 
     private void carryForward(WeeklyCommit original) {
-        Week nextWeek = weekService.getNextWeek();
+        Week originalWeek = weekService.getById(original.getWeekId());
+        Week nextWeek = weekService.getNextWeekAfter(originalWeek);
         WeeklyCommit carried = new WeeklyCommit();
         carried.setId(UUID.randomUUID());
         carried.setName(original.getName());

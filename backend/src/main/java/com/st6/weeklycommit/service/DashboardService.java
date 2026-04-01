@@ -3,7 +3,6 @@ package com.st6.weeklycommit.service;
 import com.st6.weeklycommit.dto.TeamMemberSummary;
 import com.st6.weeklycommit.entity.User;
 import com.st6.weeklycommit.entity.WeeklyCommit;
-import com.st6.weeklycommit.entity.enums.UserRole;
 import com.st6.weeklycommit.repository.UserRepository;
 import com.st6.weeklycommit.repository.WeeklyCommitRepository;
 import org.springframework.stereotype.Service;
@@ -23,8 +22,8 @@ public class DashboardService {
         this.commitRepository = commitRepository;
     }
 
-    public List<TeamMemberSummary> getTeamSummary(UUID weekId) {
-        List<User> employees = userRepository.findAll();
+    public List<TeamMemberSummary> getTeamSummary(UUID weekId, UUID managerId) {
+        List<User> employees = userRepository.findByManagerId(managerId);
         List<TeamMemberSummary> summaries = new ArrayList<>();
 
         for (User employee : employees) {
@@ -41,7 +40,7 @@ public class DashboardService {
     }
 
     private String calculateAlignment(List<WeeklyCommit> tasks) {
-        if (tasks.isEmpty()) return "GREEN";
+        if (tasks.isEmpty()) return "NA";
 
         boolean hasUnaligned = false;
         boolean hasCustom = false;
