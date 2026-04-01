@@ -35,7 +35,9 @@ class DashboardControllerTest {
 
     @Test
     void getTeamSummary_returnsAllMembers() throws Exception {
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID).param("managerId", ALICE_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID)
+                        .param("managerId", ALICE_ID)
+                        .header("X-User-Id", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(3)));
     }
@@ -43,7 +45,9 @@ class DashboardControllerTest {
     @Test
     void getTeamSummary_carolHasGreenAlignment() throws Exception {
         // Carol has all 3 tasks linked to org goals (no custom, no unaligned)
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID).param("managerId", ALICE_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID)
+                        .param("managerId", ALICE_ID)
+                        .header("X-User-Id", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.userId == '" + CAROL_ID + "')].alignmentStatus",
                         contains("GREEN")))
@@ -54,7 +58,9 @@ class DashboardControllerTest {
     @Test
     void getTeamSummary_onlyReturnsDirectReports() throws Exception {
         // Alice is the manager — she should not appear in her own team summary
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID).param("managerId", ALICE_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID)
+                        .param("managerId", ALICE_ID)
+                        .header("X-User-Id", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.userId == '" + ALICE_ID + "')]").isEmpty());
     }
@@ -62,7 +68,9 @@ class DashboardControllerTest {
     @Test
     void getTeamSummary_danHasRedAlignment() throws Exception {
         // Dan has 1 aligned, 1 custom, 1 with NO goal at all => RED
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID).param("managerId", ALICE_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID)
+                        .param("managerId", ALICE_ID)
+                        .header("X-User-Id", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.userId == '" + DAN_ID + "')].alignmentStatus",
                         contains("RED")));
@@ -71,10 +79,36 @@ class DashboardControllerTest {
     @Test
     void getTeamSummary_bobHasYellowAlignment() throws Exception {
         // Bob has 2 aligned + 1 custom goal => YELLOW
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID).param("managerId", ALICE_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID)
+                        .param("managerId", ALICE_ID)
+                        .header("X-User-Id", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.userId == '" + BOB_ID + "')].alignmentStatus",
                         contains("YELLOW")));
+    }
+
+    @Test
+    void getTeamSummary_byNonManager_returnsForbidden() throws Exception {
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID)
+                        .param("managerId", BOB_ID)
+                        .header("X-User-Id", BOB_ID))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getTeamSummary_withoutHeader_returnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID)
+                        .param("managerId", ALICE_ID))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getTeamSummary_managerViewingAnotherManagersTeam_returnsForbidden() throws Exception {
+        // Alice trying to view with a different managerId
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID)
+                        .param("managerId", BOB_ID)
+                        .header("X-User-Id", ALICE_ID))
+                .andExpect(status().isForbidden());
     }
 
     // -------------------------------------------------------
@@ -83,7 +117,8 @@ class DashboardControllerTest {
 
     @Test
     void getMemberTasks_returnsTasksForUser() throws Exception {
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID + "/member/" + CAROL_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID + "/member/" + CAROL_ID)
+                        .header("X-User-Id", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(3)))
                 .andExpect(jsonPath("$[*].ownerId", everyItem(is(CAROL_ID))));
@@ -91,7 +126,8 @@ class DashboardControllerTest {
 
     @Test
     void getMemberTasks_aliceHasThreeCurrentWeekTasks() throws Exception {
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID + "/member/" + ALICE_ID))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID + "/member/" + ALICE_ID)
+                        .header("X-User-Id", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(3)));
     }
@@ -99,8 +135,16 @@ class DashboardControllerTest {
     @Test
     void getMemberTasks_nonExistentUser_returnsEmptyList() throws Exception {
         String nonExistentUserId = "00000000-0000-0000-0000-000000000099";
-        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID + "/member/" + nonExistentUserId))
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID + "/member/" + nonExistentUserId)
+                        .header("X-User-Id", ALICE_ID))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    @Test
+    void getMemberTasks_byNonManager_returnsForbidden() throws Exception {
+        mockMvc.perform(get("/api/dashboard/team/" + CURRENT_WEEK_ID + "/member/" + CAROL_ID)
+                        .header("X-User-Id", BOB_ID))
+                .andExpect(status().isForbidden());
     }
 }

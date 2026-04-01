@@ -53,7 +53,7 @@ export function TeamDashboard() {
       showError("Failed to load dashboard. Please try again.");
     }
     setLoading(false);
-  }, [currentUser]);
+  }, [currentUser, showError]);
 
   useEffect(() => {
     loadData();

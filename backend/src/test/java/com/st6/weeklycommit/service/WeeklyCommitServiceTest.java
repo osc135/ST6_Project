@@ -209,7 +209,7 @@ class WeeklyCommitServiceTest {
         when(commitRepository.findById(task.getId())).thenReturn(Optional.of(task));
 
         ReconcileRequest request = new ReconcileRequest(task.getId(), false, null);
-        assertThrows(IllegalArgumentException.class, () -> service.reconcileTask(request));
+        assertThrows(IllegalStateException.class, () -> service.reconcileTask(request));
     }
 
     @Test

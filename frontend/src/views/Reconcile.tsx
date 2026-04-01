@@ -58,7 +58,7 @@ export function Reconcile() {
       showError("Failed to load reconciliation data. Please try again.");
     }
     setLoading(false);
-  }, [currentUser]);
+  }, [currentUser, showError]);
 
   useEffect(() => {
     loadData();

@@ -128,7 +128,7 @@ public class WeeklyCommitService {
         }
 
         if (!request.done() && (request.explanation() == null || request.explanation().isBlank())) {
-            throw new IllegalArgumentException("Explanation is required when marking a task as not done");
+            throw new IllegalStateException("Explanation is required when marking a task as not done");
         }
 
         ReconciliationEntry entry = new ReconciliationEntry();

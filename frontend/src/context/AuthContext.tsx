@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import type { User } from "../types";
-import { api } from "../api/client";
+import { api, setCurrentUserId } from "../api/client";
 
 interface AuthContextValue {
   currentUser: User | null;
@@ -36,11 +36,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback((user: User) => {
     setCurrentUser(user);
     setIsAuthenticated(true);
+    setCurrentUserId(user.id);
   }, []);
 
   const logout = useCallback(() => {
     setCurrentUser(null);
     setIsAuthenticated(false);
+    setCurrentUserId(null);
   }, []);
 
   return (
