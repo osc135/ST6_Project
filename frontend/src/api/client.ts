@@ -10,7 +10,7 @@ import type {
   ReconcileRequest,
 } from "../types";
 
-const BASE_URL = "http://localhost:8080/api";
+const BASE_URL = process.env.API_URL || "http://localhost:8080/api";
 
 let currentUserId: string | null = null;
 

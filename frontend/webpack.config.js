@@ -1,4 +1,5 @@
 const path = require("path");
+const webpack = require("webpack");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const { ModuleFederationPlugin } = require("webpack").container;
 module.exports = {
@@ -37,6 +38,9 @@ module.exports = {
         "react-dom": { singleton: true, requiredVersion: "^18.2.0" },
         "react-router-dom": { singleton: true, requiredVersion: "^6.22.0" },
       },
+    }),
+    new webpack.DefinePlugin({
+      "process.env.API_URL": JSON.stringify(process.env.API_URL || ""),
     }),
     new HtmlWebpackPlugin({
       template: "./public/index.html",
