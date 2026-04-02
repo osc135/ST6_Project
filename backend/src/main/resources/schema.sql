@@ -1,4 +1,4 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -8,13 +8,13 @@ CREATE TABLE users (
     FOREIGN KEY (manager_id) REFERENCES users(id)
 );
 
-CREATE TABLE weeks (
+CREATE TABLE IF NOT EXISTS weeks (
     id UUID PRIMARY KEY,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL
 );
 
-CREATE TABLE goal_nodes (
+CREATE TABLE IF NOT EXISTS goal_nodes (
     id UUID PRIMARY KEY,
     title VARCHAR(500) NOT NULL,
     level VARCHAR(30) NOT NULL CHECK (level IN ('RALLY_CRY', 'DEFINING_OBJECTIVE', 'OUTCOME')),
@@ -22,7 +22,7 @@ CREATE TABLE goal_nodes (
     FOREIGN KEY (parent_id) REFERENCES goal_nodes(id)
 );
 
-CREATE TABLE weekly_commits (
+CREATE TABLE IF NOT EXISTS weekly_commits (
     id UUID PRIMARY KEY,
     name VARCHAR(500) NOT NULL,
     priority VARCHAR(10) NOT NULL CHECK (priority IN ('KING', 'QUEEN', 'KNIGHT', 'PAWN')),
@@ -39,7 +39,7 @@ CREATE TABLE weekly_commits (
     FOREIGN KEY (carried_over_from) REFERENCES weekly_commits(id)
 );
 
-CREATE TABLE reconciliation_entries (
+CREATE TABLE IF NOT EXISTS reconciliation_entries (
     id UUID PRIMARY KEY,
     commit_id UUID NOT NULL,
     done BOOLEAN NOT NULL,
